@@ -27,7 +27,7 @@ object Solution extends App {
    * B.1
    * Loads the written data and splits them into multiple chunks sorted using merge sort
    */
-  def singleThreadedSplitSortStep(k: Int) = {
+  def splitSortFiles(k: Int) = {
     val source = Source.fromFile("dataset.txt")
     val data = source.getLines().toList.map(Integer.valueOf(_, 2)).map(_.toInt)
     val partitions = data.grouped(data.size / k).toList
@@ -40,7 +40,7 @@ object Solution extends App {
   }
 
   /** Q2 Are there parts of the program that can be parallelized across multiple cores in the same machine? */
-  def multithreadedSplitSort(k: Int) = {
+  def concurrentSplitSortFiles(k: Int) = {
     val source = Source.fromFile("dataset.txt")
     val data = source.getLines().toList.map(Integer.valueOf(_, 2)).map(_.toInt)
     val chunks = data.grouped(data.size / k).toList
@@ -54,7 +54,7 @@ object Solution extends App {
     }
   }
 
-  /** 2 Way Merge Sort algorithm to be used for internal sorting */
+  /** Canonical Recursive 2 Way Merge Sort algorithm to be used for internal sorting */
   def mergeSort(list: List[Int]): List[Int] = list match {
     case ::(head, Nil) => List(head)
     case list =>
