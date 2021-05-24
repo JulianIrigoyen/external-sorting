@@ -15,14 +15,6 @@ case class SolutionTest() extends UnitSpec with BeforeAndAfterEach {
   protected val chunkFilePrefix = "sorted-chunk-"
   protected val chunkFilesuffix = ".txt"
 
-  override def beforeEach(): Unit = {
-    for {
-      data <- new File(newDatasetPath).check
-      deleted <- data.remove
-    } yield deleted
-    cleanUp(K)
-  }
-
   override def afterEach(): Unit = cleanUp(K)
 
   "Solution" when {
@@ -31,14 +23,14 @@ case class SolutionTest() extends UnitSpec with BeforeAndAfterEach {
         val n = 1
         Solution.createDataset(n, randomIntUpperBound)
         val file = new File(newDatasetPath)
-        file.check.get.isFile should be(true)
+        file.check.get.isFile shouldBe true
       }
 
       "create n1 records" in {
         val n1 = 100
         createDataset(n1, randomIntUpperBound)
         val source = Source.fromFile(newDatasetPath)
-        source.getLines().toArray.length == n1 should be(true)
+        source.getLines().toArray.length == n1 shouldBe true
       }
 
       "create n2 records in binary form" in {
@@ -47,17 +39,17 @@ case class SolutionTest() extends UnitSpec with BeforeAndAfterEach {
         val source = Source.fromFile(newDatasetPath)
         val records = source.getLines().toArray
 
-        records.length == n2 should be(true)
+        records.length == n2 shouldBe true
         records.foreach { record =>
-          for (x <- 2 to 9) record.contains(x) should be(false)
+          for (x <- 2 to 9) record.contains(x) shouldBe false
         }
       }
 
       "create n3 records" in {
-        val n3 = 41235
+        val n3 = 432
         Solution.createDataset(n3, randomIntUpperBound)
         val source = Source.fromFile(newDatasetPath)
-        source.getLines().toArray.length == n3 should be(true)
+        source.getLines().toArray.length == n3 shouldBe true
       }
     }
 
@@ -65,10 +57,10 @@ case class SolutionTest() extends UnitSpec with BeforeAndAfterEach {
       "split the dataset into K chunks" in {
         val n1 = 100
         createDataset(n1, randomIntUpperBound)
-        singleThreadedSplitSortStep(K)
-        new File(chunkFilePrefix + (K + 1) + chunkFilesuffix).check.isEmpty should be(true)
+        splitSortFiles(K)
+        new File(chunkFilePrefix + (K + 1) + chunkFilesuffix).check.isEmpty shouldBe true
         for (x <- 0 to K) {
-          new File(chunkFilePrefix + x + chunkFilesuffix).check.get.isFile should be(true)
+          new File(chunkFilePrefix + x + chunkFilesuffix).check.get.isFile shouldBe true
         }
       }
 
@@ -77,21 +69,25 @@ case class SolutionTest() extends UnitSpec with BeforeAndAfterEach {
         createDataset(n1, randomIntUpperBound)
 
         val tSingleThread = System.nanoTime
-        singleThreadedSplitSortStep(K)
+        splitSortFiles(K)
         val singleThreadDuration = (System.nanoTime - tSingleThread) / 1e9d
-        println(s"Single threaded duration of splitting file and sorting chunks: $singleThreadDuration")
+        println(s"Duration of splitting file and sorting chunks: $singleThreadDuration")
 
         val tMultiThread = System.nanoTime
-        multithreadedSplitSort(K)
+        concurrentSplitSortFiles(K)
         val multithreadedDuration = (System.nanoTime - tMultiThread) / 1e9d
-        println(s"Multithreaded duration of splitting file and sorting chunks: $multithreadedDuration")
+        println(s"Duration of splitting file and sorting chunks concurrently: $multithreadedDuration")
 
-        multithreadedDuration < singleThreadDuration shouldBe (true)
+        multithreadedDuration < singleThreadDuration shouldBe true
       }
     }
   }
 
   private def cleanUp(K: Int) = {
+    for {
+      data <- new File(newDatasetPath).check
+      deleted <- data.remove
+    } yield deleted
     for (x <- 0 to K) {
       val path = s"sorted-chunk-$x.txt"
       for {
