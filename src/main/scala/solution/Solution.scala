@@ -40,18 +40,51 @@ object Solution extends App {
   }
 
   /** Q2 Are there parts of the program that can be parallelized across multiple cores in the same machine? */
-  def concurrentSplitSortFiles(k: Int) = {
+  def multithreadedSplitSort(k: Int) = {
     val source = Source.fromFile("dataset.txt")
     val data = source.getLines().toList.map(Integer.valueOf(_, 2)).map(_.toInt)
     val chunks = data.grouped(data.size / k).toList
-    val t1 = System.nanoTime
-    synchronized {
-      for (chunk <- chunks.zipWithIndex) {
-        var th = new Thread(new ChunkSorter(chunk))
-        th.setName(s"Chunk-n-${chunk._2}")
-        th.start()
+    for (chunk <- chunks.zipWithIndex) {
+      var th = new Thread(new ChunkSorter(chunk))
+      th.setName(s"Chunk-n-${chunk._2}")
+      th.start()
+    }
+  }
+
+  /**
+   * B.2
+   * Whole file chunks will be loaded in this case.
+   * K integers of in-memory capacity to do sorting are represented in the Minheap's size.
+   */
+  def loadDataset(k: Int): List[List[Int]] = {
+    var chunkedData: List[List[Int]] = List()
+    for (x <- 0 until k) {
+      val path = s"sorted-chunk-$x.txt"
+      val source = Source.fromFile(path)
+      chunkedData = chunkedData :+ source.getLines().toList.map(_.toInt)
+    }
+    chunkedData.filter(_.nonEmpty)
+  }
+
+
+  /** C. Write a program which reads the sorted file and confirms that it is sorted correctly. */
+  def validateSolution = {
+    val source = Source.fromFile("solution.txt")
+    val result = source.getLines().toList.zipWithIndex
+
+    for (i <- 0 until result.length - 1) {
+      print(result(i)._1 + "<")
+      if (result(i)._1.toInt > result(i + 1)._1.toInt) {
+        throw new RuntimeException(s" ${result(i)._1.toInt} is bigger than the next element ${result(i + 1)._1.toInt}")
       }
     }
+  }
+
+  def readFile(filename: String): Array[Int] = {
+    val bufferedSource = io.Source.fromFile(filename)
+    val lines: Array[Int] = (for (line <- bufferedSource.getLines()) yield line).toArray.map(_.toInt)
+    bufferedSource.close
+    lines
   }
 
   /** Canonical Recursive 2 Way Merge Sort algorithm to be used for internal sorting */

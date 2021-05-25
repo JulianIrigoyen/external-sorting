@@ -3,19 +3,22 @@ package solution
 import org.scalatest.BeforeAndAfterEach
 
 import java.io.File
+import java.util.concurrent.TimeUnit
 import scala.io.Source
 
 case class SolutionTest() extends UnitSpec with BeforeAndAfterEach {
 
   import solution.Solution._
 
+  val K = 3
+
   protected val randomIntUpperBound = 9999
   protected val newDatasetPath = "dataset.txt"
-  protected val K = 3
   protected val chunkFilePrefix = "sorted-chunk-"
   protected val chunkFilesuffix = ".txt"
 
-  override def afterEach(): Unit = cleanUp(K)
+  override def beforeEach(): Unit = cleanUp(K)
+  override def afterEach() : Unit = cleanUp(K)
 
   "Solution" when {
     "creating a data set" should {
@@ -54,16 +57,6 @@ case class SolutionTest() extends UnitSpec with BeforeAndAfterEach {
     }
 
     "splitting and sorting files" should {
-      "split the dataset into K chunks" in {
-        val n1 = 100
-        createDataset(n1, randomIntUpperBound)
-        splitSortFiles(K)
-        new File(chunkFilePrefix + (K + 1) + chunkFilesuffix).check.isEmpty shouldBe true
-        for (x <- 0 to K) {
-          new File(chunkFilePrefix + x + chunkFilesuffix).check.get.isFile shouldBe true
-        }
-      }
-
       "be faster when splitting and sorting concurrently" in {
         val n1 = 10000
         createDataset(n1, randomIntUpperBound)
@@ -74,11 +67,98 @@ case class SolutionTest() extends UnitSpec with BeforeAndAfterEach {
         println(s"Duration of splitting file and sorting chunks: $singleThreadDuration")
 
         val tMultiThread = System.nanoTime
-        concurrentSplitSortFiles(K)
+        multithreadedSplitSort(K)
         val multithreadedDuration = (System.nanoTime - tMultiThread) / 1e9d
         println(s"Duration of splitting file and sorting chunks concurrently: $multithreadedDuration")
 
         multithreadedDuration < singleThreadDuration shouldBe true
+      }
+    }
+
+    "k-way merging using the minheap" should {
+
+      "sort properly I (n = 100 k = 3)" in {
+
+        val n = 100
+        val upperIntBound = 999
+        val k = K
+
+        println("<<<<<<<<<<<< Start >>>>>>>>>>>>>>")
+        println("\n")
+        createDataset(n, upperIntBound)
+        multithreadedSplitSort(k)
+
+        val t0 = System.nanoTime
+        MinHeap.mergeKSortedArrays(loadDataset(k).toArray.filter(_.nonEmpty).map(_.toArray), k)
+        val elapsedTime = System.nanoTime - t0
+
+        validateSolution
+
+        println("\n")
+        println(s"Sorted $n records using $k units of in-memory capacity to do sorting in ${TimeUnit.NANOSECONDS.toMillis(elapsedTime)} millis.")
+      }
+
+      "sort properly II (n = 1000 k = 10)" in {
+
+        val n = 1000
+        val upperIntBound = 99999
+        val k = 10
+
+        println("<<<<<<<<<<<< Start >>>>>>>>>>>>>>")
+        println("\n")
+        createDataset(n, upperIntBound)
+        multithreadedSplitSort(k)
+
+        val t0 = System.nanoTime
+        MinHeap.mergeKSortedArrays(loadDataset(k).toArray.filter(_.nonEmpty).map(_.toArray), k)
+        val elapsedTime = System.nanoTime - t0
+
+        validateSolution
+
+        println("\n")
+        println(s"Sorted $n records using $k units of in-memory capacity to do sorting in ${TimeUnit.NANOSECONDS.toMillis(elapsedTime)} millis.")
+      }
+
+      "sort properly III (n = 10000 k = 100)" in {
+
+        val n = 10000
+        val upperIntBound = 900000
+        val k = 100
+
+        println("<<<<<<<<<<<< Start >>>>>>>>>>>>>>")
+        println("\n")
+        createDataset(n, upperIntBound)
+        multithreadedSplitSort(k)
+
+        val t0 = System.nanoTime
+        MinHeap.mergeKSortedArrays(loadDataset(k).toArray.filter(_.nonEmpty).map(_.toArray), k)
+        val elapsedTime = System.nanoTime - t0
+
+        validateSolution
+
+        println("\n")
+        println(s"Sorted $n records using $k units of in-memory capacity to do sorting in ${TimeUnit.NANOSECONDS.toMillis(elapsedTime)} millis.")
+      }
+
+      "sort properly IV (n = 100000 k = 1000)" in {
+
+        val n =  100000
+        val upperIntBound = 10000000
+        val k = 1000
+
+        println("<<<<<<<<<<<< Start >>>>>>>>>>>>>>")
+        println("\n")
+        createDataset(n, upperIntBound)
+        multithreadedSplitSort(k)
+
+        val t0 = System.nanoTime
+        MinHeap.mergeKSortedArrays(loadDataset(k).toArray.filter(_.nonEmpty).map(_.toArray), k)
+        val elapsedTime = System.nanoTime - t0
+
+        validateSolution
+
+        println("\n")
+        println(s"Sorted $n records using $k units of in-memory capacity to do sorting in ${TimeUnit.NANOSECONDS.toMillis(elapsedTime)} millis.")
       }
     }
   }
